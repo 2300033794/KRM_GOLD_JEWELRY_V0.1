@@ -20,6 +20,10 @@ import { RolesGuard } from '../auth/roles.guard';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { ProductsService } from './products.service';
 
+const PRODUCT_IMAGE_MAX_BYTES = Number(
+  process.env.PRODUCT_IMAGE_MAX_BYTES ?? 5 * 1024 * 1024,
+);
+
 @Controller('api/products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -61,7 +65,7 @@ export class ProductsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 5 * 1024 * 1024 },
+      limits: { fileSize: PRODUCT_IMAGE_MAX_BYTES },
     }),
   )
   uploadImage(

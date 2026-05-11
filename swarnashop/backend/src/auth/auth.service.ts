@@ -11,6 +11,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './dto';
 import { getJwtSecret } from './jwt.config';
 
+function getBcryptRounds() {
+  const rounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
+
+  if (!Number.isInteger(rounds) || rounds < 10) {
+    return 12;
+  }
+
+  return rounds;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -28,7 +38,7 @@ export class AuthService {
       throw new ConflictException('Email already exists');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = await bcrypt.hash(dto.password, getBcryptRounds());
 
     const user = await this.prisma.user.create({
       data: {

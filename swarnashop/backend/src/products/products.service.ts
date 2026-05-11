@@ -11,7 +11,13 @@ import { CreateProductDto, UpdateProductDto } from './dto';
 
 @Injectable()
 export class ProductsService {
+  private static cloudinaryConfigured = false;
+
   constructor(private readonly prisma: PrismaService) {
+    if (ProductsService.cloudinaryConfigured) {
+      return;
+    }
+
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -27,6 +33,8 @@ export class ProductsService {
       api_key: apiKey,
       api_secret: apiSecret,
     });
+
+    ProductsService.cloudinaryConfigured = true;
   }
 
   list(category?: string, purity?: string) {
