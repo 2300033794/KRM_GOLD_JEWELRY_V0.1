@@ -4,109 +4,77 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { StoreService } from '../store/store.service';
-
-class ProductDto {
-  @IsString() name!: string;
-  @IsString() slug!: string;
-  @IsString() description!: string;
-  @IsString() purity!: string;
-  @IsNumber() weightGrams!: number;
-  @IsNumber() makingCharge!: number;
-  @IsNumber() wastagePerc!: number;
-  @IsString() categoryId!: string;
-  @IsNumber() stock!: number;
-  @IsOptional() @IsBoolean() isFeatured?: boolean;
-  @IsOptional() @IsBoolean() isActive?: boolean;
-}
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Role } from '@prisma/client';
+import { memoryStorage } from 'multer';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { CreateProductDto, UpdateProductDto } from './dto';
+import { ProductsService } from './products.service';
 
 @Controller('api/products')
 export class ProductsController {
-  constructor(private readonly store: StoreService) {}
+  constructor(private readonly productsService: ProductsService) {}
 
   @Get()
   list(@Query('category') category?: string, @Query('purity') purity?: string) {
-    return this.store.products.filter(
-      (p) =>
-        (!category || p.categoryId === category) &&
-        (!purity || p.purity === purity),
-    );
+    return this.productsService.list(category, purity);
   }
 
-  @Get(':slug')
-  get(@Param('slug') slug: string) {
-    return (
-      this.store.products.find((p) => p.slug === slug) ?? {
-        message: 'Not found',
-      }
-    );
+  @Get(':id')
+  get(@Param('id') id: string) {
+    return this.productsService.getById(id);
   }
 
   @Post()
-  create(@Body() dto: ProductDto) {
-    const product = {
-      ...dto,
-      id: crypto.randomUUID(),
-      isActive: dto.isActive ?? true,
-      isFeatured: dto.isFeatured ?? false,
-      images: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.store.products.push(product);
-    return product;
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: ProductDto) {
-    const product = this.store.products.find((p) => p.id === id);
-    if (!product) return { message: 'Not found' };
-    Object.assign(product, dto, { updatedAt: new Date().toISOString() });
-    return product;
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   remove(@Param('id') id: string) {
-    this.store.products = this.store.products.filter((p) => p.id !== id);
-    return { success: true };
+    return this.productsService.remove(id);
   }
 
   @Post(':id/images')
-  uploadImage(@Param('id') id: string) {
-    const product = this.store.products.find((p) => p.id === id);
-    if (!product) return { message: 'Not found' };
-    const image = {
-      id: crypto.randomUUID(),
-      url: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
-      publicId: 'sample',
-      isPrimary: product.images.length === 0,
-    };
-    product.images.push(image);
-    return image;
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.productsService.uploadImage(id, file);
   }
 
   @Delete(':id/images/:imgId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
   deleteImage(@Param('id') id: string, @Param('imgId') imgId: string) {
-    const product = this.store.products.find((p) => p.id === id);
-    if (!product) return { message: 'Not found' };
-    product.images = product.images.filter((img) => img.id !== imgId);
-    return { success: true };
-  }
-
-  @Patch(':id/images/:imgId/primary')
-  setPrimary(@Param('id') id: string, @Param('imgId') imgId: string) {
-    const product = this.store.products.find((p) => p.id === id);
-    if (!product) return { message: 'Not found' };
-    product.images = product.images.map((img) => ({
-      ...img,
-      isPrimary: img.id === imgId,
-    }));
-    return { success: true };
+    return this.productsService.deleteImage(id, imgId);
   }
 }
