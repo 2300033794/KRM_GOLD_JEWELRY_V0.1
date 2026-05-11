@@ -1,0 +1,1 @@
+import type { InputHTMLAttributes } from "react"; export function Input(props: InputHTMLAttributes<HTMLInputElement>){return <input {...props} className={`rounded border p-2 ${props.className ?? ""}`} />;}

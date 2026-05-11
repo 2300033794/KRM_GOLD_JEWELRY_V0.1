@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --primary-gold: #d4af37;
+  --deep-gold: #b8860b;
+  --charcoal: #1a1a1a;
+  --ivory: #fffaf0;
+  --surface: #faf5e4;
+  --muted: #6b6b6b;
+  --copper: #b87333;
+  --error: #c0392b;
+  --success: #27ae60;
+  --background: var(--ivory);
+  --foreground: var(--charcoal);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: var(--charcoal);
+  --foreground: #fdf7ea;
+  --surface: #272727;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Jost", "Segoe UI", sans-serif;
+}
+
+h1, h2, h3, h4 { font-family: "Cormorant Garamond", Georgia, serif; }
+.data-font { font-family: "DM Mono", ui-monospace, monospace; }
+.surface { background: var(--surface); }
+.gold-accent { color: var(--deep-gold); }
+
+@keyframes gold-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b, #d4af37);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gold-shimmer 3s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0ead9 25%, #fbf8ec 50%, #f0ead9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: inline-flex;
+  min-width: max-content;
+  animation: marquee 16s linear infinite;
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: fade-clip linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 30%;
+  }
+  @keyframes fade-clip {
+    from { opacity: 0; clip-path: inset(0 0 40% 0); }
+    to { opacity: 1; clip-path: inset(0 0 0 0); }
+  }
+}
