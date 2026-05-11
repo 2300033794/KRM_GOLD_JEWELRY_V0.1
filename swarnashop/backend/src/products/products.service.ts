@@ -1,5 +1,7 @@
 import {
+  BadGatewayException,
   BadRequestException,
+  InternalServerErrorException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,10 +12,20 @@ import { CreateProductDto, UpdateProductDto } from './dto';
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      throw new InternalServerErrorException(
+        'Cloudinary configuration is missing',
+      );
+    }
+
     cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
     });
   }
 
@@ -125,9 +137,13 @@ export class ProductsService {
       throw new NotFoundException('Product image not found');
     }
 
-    await cloudinary.uploader.destroy(decodedPublicId, {
+    const deleteResult = (await cloudinary.uploader.destroy(decodedPublicId, {
       resource_type: 'image',
-    });
+    })) as { result?: string };
+
+    if (deleteResult.result !== 'ok' && deleteResult.result !== 'not found') {
+      throw new BadGatewayException('Failed to delete image from Cloudinary');
+    }
 
     await this.prisma.productImage.delete({ where: { id: image.id } });
 

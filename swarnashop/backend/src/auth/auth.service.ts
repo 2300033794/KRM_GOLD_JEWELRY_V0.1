@@ -6,8 +6,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import type { StringValue } from 'ms';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './dto';
+import { getJwtSecret } from './jwt.config';
 
 @Injectable()
 export class AuthService {
@@ -65,11 +67,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const tokenExpiry = (process.env.JWT_ACCESS_TOKEN_EXPIRES_IN ??
+      '15m') as StringValue;
+
     const accessToken = await this.jwtService.signAsync(
       { sub: user.id, role: user.role },
       {
-        secret: process.env.JWT_SECRET ?? 'your_jwt_secret',
-        expiresIn: '15m',
+        secret: getJwtSecret(),
+        expiresIn: tokenExpiry,
       },
     );
 

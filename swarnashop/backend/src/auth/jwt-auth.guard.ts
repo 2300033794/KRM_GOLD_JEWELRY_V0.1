@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import { RequestUser } from './auth.types';
+import { getJwtSecret } from './jwt.config';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -25,12 +26,10 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     if (!token) throw new UnauthorizedException('Missing token');
-    const secret = process.env.JWT_SECRET ?? 'your_jwt_secret';
-
     try {
       const payload = this.jwtService.verify<{ sub: string; role: Role }>(
         token,
-        { secret },
+        { secret: getJwtSecret() },
       );
       req.user = { id: payload.sub, role: payload.role };
       return true;

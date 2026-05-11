@@ -7,16 +7,30 @@ export class GoldRatesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async latest() {
-    const rates = await this.prisma.goldRate.findMany({
-      where: { purity: { in: ['24KT', '22KT', '18KT'] } },
-      orderBy: { effectiveDate: 'desc' },
-    });
+    const [rate24kt, rate22kt, rate18kt] = await this.prisma.$transaction([
+      this.prisma.goldRate.findFirst({
+        where: { purity: '24KT' },
+        orderBy: { effectiveDate: 'desc' },
+      }),
+      this.prisma.goldRate.findFirst({
+        where: { purity: '22KT' },
+        orderBy: { effectiveDate: 'desc' },
+      }),
+      this.prisma.goldRate.findFirst({
+        where: { purity: '18KT' },
+        orderBy: { effectiveDate: 'desc' },
+      }),
+    ]);
 
     return {
-      rate24kt: rates.find((row) => row.purity === '24KT')?.ratePerGram ?? null,
-      rate22kt: rates.find((row) => row.purity === '22KT')?.ratePerGram ?? null,
-      rate18kt: rates.find((row) => row.purity === '18KT')?.ratePerGram ?? null,
-      effectiveDate: rates[0]?.effectiveDate ?? null,
+      rate24kt: rate24kt?.ratePerGram ?? null,
+      rate22kt: rate22kt?.ratePerGram ?? null,
+      rate18kt: rate18kt?.ratePerGram ?? null,
+      effectiveDate:
+        rate24kt?.effectiveDate ??
+        rate22kt?.effectiveDate ??
+        rate18kt?.effectiveDate ??
+        null,
     };
   }
 
