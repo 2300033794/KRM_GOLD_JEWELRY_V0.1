@@ -86,7 +86,11 @@ export class ProductsService {
         },
         (error, result) => {
           if (error || !result) {
-            reject(error ?? new Error('Cloudinary upload failed'));
+            reject(
+              error instanceof Error
+                ? error
+                : new Error('Cloudinary upload failed'),
+            );
             return;
           }
           resolve(result);
