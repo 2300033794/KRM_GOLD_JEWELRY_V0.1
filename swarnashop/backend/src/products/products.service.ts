@@ -11,13 +11,7 @@ import { CreateProductDto, UpdateProductDto } from './dto';
 
 @Injectable()
 export class ProductsService {
-  private static cloudinaryConfigured = false;
-
   constructor(private readonly prisma: PrismaService) {
-    if (ProductsService.cloudinaryConfigured) {
-      return;
-    }
-
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -33,8 +27,6 @@ export class ProductsService {
       api_key: apiKey,
       api_secret: apiSecret,
     });
-
-    ProductsService.cloudinaryConfigured = true;
   }
 
   list(category?: string, purity?: string) {
@@ -147,9 +139,19 @@ export class ProductsService {
 
     const deleteResult = (await cloudinary.uploader.destroy(decodedPublicId, {
       resource_type: 'image',
-    })) as { result?: string };
+    })) as unknown;
 
-    if (deleteResult.result !== 'ok' && deleteResult.result !== 'not found') {
+    if (
+      typeof deleteResult !== 'object' ||
+      deleteResult === null ||
+      !('result' in deleteResult)
+    ) {
+      throw new BadGatewayException('Unexpected Cloudinary delete response');
+    }
+
+    const deleteStatus = String((deleteResult as { result?: unknown }).result);
+
+    if (deleteStatus !== 'ok' && deleteStatus !== 'not found') {
       throw new BadGatewayException('Failed to delete image from Cloudinary');
     }
 

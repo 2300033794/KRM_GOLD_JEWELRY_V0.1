@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -15,7 +16,9 @@ function getBcryptRounds() {
   const rounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
 
   if (!Number.isInteger(rounds) || rounds < 10) {
-    return 12;
+    throw new InternalServerErrorException(
+      'BCRYPT_SALT_ROUNDS must be an integer >= 10',
+    );
   }
 
   return rounds;

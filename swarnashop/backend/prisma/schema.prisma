@@ -80,7 +80,7 @@ model GoldRate {
   ratePerGram   Float
   purity        String
   effectiveDate DateTime @default(now())
-  updatedBy     User?    @relation("GoldRateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBy     User?    @relation("GoldRateUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
   updatedById   String?
   source        String?
   createdAt     DateTime @default(now())
