@@ -24,6 +24,18 @@ function getBcryptRounds() {
   return rounds;
 }
 
+function getJwtExpiry(): StringValue {
+  const expiry = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN ?? '15m';
+
+  if (!/^\d+[smhd]$/.test(expiry)) {
+    throw new InternalServerErrorException(
+      'JWT_ACCESS_TOKEN_EXPIRES_IN must match pattern <number><s|m|h|d>',
+    );
+  }
+
+  return expiry as StringValue;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -80,14 +92,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokenExpiry = (process.env.JWT_ACCESS_TOKEN_EXPIRES_IN ??
-      '15m') as StringValue;
-
     const accessToken = await this.jwtService.signAsync(
       { sub: user.id, role: user.role },
       {
         secret: getJwtSecret(),
-        expiresIn: tokenExpiry,
+        expiresIn: getJwtExpiry(),
       },
     );
 

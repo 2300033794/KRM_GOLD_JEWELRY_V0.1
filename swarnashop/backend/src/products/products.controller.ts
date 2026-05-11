@@ -20,9 +20,12 @@ import { RolesGuard } from '../auth/roles.guard';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { ProductsService } from './products.service';
 
-const PRODUCT_IMAGE_MAX_BYTES = Number(
-  process.env.PRODUCT_IMAGE_MAX_BYTES ?? 5 * 1024 * 1024,
-);
+function getProductImageMaxBytes() {
+  const parsed = Number(process.env.PRODUCT_IMAGE_MAX_BYTES ?? 5 * 1024 * 1024);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5 * 1024 * 1024;
+}
+
+const PRODUCT_IMAGE_MAX_BYTES = getProductImageMaxBytes();
 
 @Controller('api/products')
 export class ProductsController {

@@ -9,6 +9,20 @@ import { v2 as cloudinary } from 'cloudinary';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
 
+interface CloudinaryDeleteResponse {
+  result: string;
+}
+
+function isCloudinaryDeleteResponse(
+  value: unknown,
+): value is CloudinaryDeleteResponse {
+  if (typeof value !== 'object' || value === null || !('result' in value)) {
+    return false;
+  }
+
+  return typeof value.result === 'string';
+}
+
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {
@@ -141,17 +155,11 @@ export class ProductsService {
       resource_type: 'image',
     })) as unknown;
 
-    if (
-      typeof deleteResult !== 'object' ||
-      deleteResult === null ||
-      !('result' in deleteResult)
-    ) {
+    if (!isCloudinaryDeleteResponse(deleteResult)) {
       throw new BadGatewayException('Unexpected Cloudinary delete response');
     }
 
-    const deleteStatus = String((deleteResult as { result?: unknown }).result);
-
-    if (deleteStatus !== 'ok' && deleteStatus !== 'not found') {
+    if (deleteResult.result !== 'ok' && deleteResult.result !== 'not found') {
       throw new BadGatewayException('Failed to delete image from Cloudinary');
     }
 
