@@ -39,7 +39,7 @@ export class PaymentsService {
       amount: amountInPaise,
       currency: dto.currency ?? 'INR',
       receipt: dto.receipt ?? `receipt_${Date.now()}`,
-      payment_capture: true,
+      payment_capture: dto.capture ?? true,
     });
   }
 

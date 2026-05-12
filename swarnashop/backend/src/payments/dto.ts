@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreatePaymentOrderDto {
   @Type(() => Number)
@@ -14,6 +20,10 @@ export class CreatePaymentOrderDto {
   @IsOptional()
   @IsString()
   receipt?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  capture?: boolean;
 }
 
 export class VerifyPaymentDto {

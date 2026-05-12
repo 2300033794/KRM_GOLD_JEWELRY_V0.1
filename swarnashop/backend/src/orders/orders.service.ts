@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import {
   DeliveryStatus,
   OrderStatus,
@@ -181,7 +182,7 @@ export class OrdersService {
       0,
     );
 
-    const orderNumber = `KRM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const orderNumber = `KRM-${randomUUID()}`;
 
     return this.prisma.order.create({
       data: {
@@ -223,8 +224,14 @@ export class OrdersService {
         status: OrderStatus.CANCELLED,
         delivery: {
           upsert: {
-            create: { status: DeliveryStatus.RETURNED },
-            update: { status: DeliveryStatus.RETURNED },
+            create: {
+              status: DeliveryStatus.FAILED,
+              notes: 'Order cancelled before fulfillment',
+            },
+            update: {
+              status: DeliveryStatus.FAILED,
+              notes: 'Order cancelled before fulfillment',
+            },
           },
         },
       },
