@@ -182,7 +182,8 @@ export class OrdersService {
       0,
     );
 
-    const orderNumber = `KRM-${randomUUID()}`;
+    const orderPrefix = process.env.ORDER_NUMBER_PREFIX ?? 'KRM';
+    const orderNumber = `${orderPrefix}-${randomUUID()}`;
 
     return this.prisma.order.create({
       data: {
