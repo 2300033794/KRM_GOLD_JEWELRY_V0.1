@@ -70,6 +70,17 @@ h1, h2, h3, h4 { font-family: "Cormorant Garamond", Georgia, serif; }
   animation: marquee 16s linear infinite;
 }
 
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: reveal-up 0.7s ease forwards;
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @supports (animation-timeline: view()) {
   .reveal {
     animation: fade-clip linear both;
