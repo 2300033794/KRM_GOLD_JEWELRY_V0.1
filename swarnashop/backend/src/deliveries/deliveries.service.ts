@@ -61,25 +61,25 @@ export class DeliveriesService {
       throw new NotFoundException('Delivery not found');
     }
 
-    const updateData: Prisma.DeliveryUpdateInput = {
-      courierName: dto.courierName,
-      trackingId: dto.trackingId,
-      status: dto.status,
-      updatedBy: { connect: { id: updatedById } },
-      ...(dto.estimatedDate
-        ? { estimatedDate: new Date(dto.estimatedDate) }
-        : {}),
-      ...(dto.status === DeliveryStatus.DELIVERED
-        ? { deliveredAt: new Date() }
-        : {}),
-    };
-
+    let estimatedDate: Date | undefined;
     if (dto.estimatedDate) {
       const parsedDate = new Date(dto.estimatedDate);
       if (Number.isNaN(parsedDate.getTime())) {
         throw new BadRequestException('Invalid estimatedDate');
       }
+      estimatedDate = parsedDate;
     }
+
+    const updateData: Prisma.DeliveryUpdateInput = {
+      courierName: dto.courierName,
+      trackingId: dto.trackingId,
+      status: dto.status,
+      updatedBy: { connect: { id: updatedById } },
+      ...(estimatedDate ? { estimatedDate } : {}),
+      ...(dto.status === DeliveryStatus.DELIVERED
+        ? { deliveredAt: new Date() }
+        : {}),
+    };
 
     return this.prisma.delivery.update({
       where: { id },
