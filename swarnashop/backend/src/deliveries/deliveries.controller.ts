@@ -1,38 +1,46 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
-import { StoreService } from '../store/store.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import type { RequestUser } from '../auth/auth.types';
+import { DeliveriesService } from './deliveries.service';
+import { UpdateDeliveryDto } from './dto';
 
 @Controller('api/deliveries')
 export class DeliveriesController {
-  constructor(private readonly store: StoreService) {}
+  constructor(private readonly deliveriesService: DeliveriesService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   list() {
-    return this.store.deliveries;
+    return this.deliveriesService.list();
   }
 
   @Get(':orderId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   detail(@Param('orderId') orderId: string) {
-    return (
-      this.store.deliveries.find((d) => d.orderId === orderId) ?? {
-        message: 'Not found',
-      }
-    );
+    return this.deliveriesService.getByOrderId(orderId);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   update(
     @Param('id') id: string,
-    @Body()
-    body: {
-      status?: string;
-      courierName?: string;
-      trackingId?: string;
-      estimatedDate?: string;
-    },
+    @Body() body: UpdateDeliveryDto,
+    @Req() req: { user: RequestUser },
   ) {
-    const delivery = this.store.deliveries.find((d) => d.id === id);
-    if (!delivery) return { message: 'Not found' };
-    Object.assign(delivery, body, { updatedAt: new Date().toISOString() });
-    return delivery;
+    return this.deliveriesService.update(id, body, req.user.id);
   }
 }
