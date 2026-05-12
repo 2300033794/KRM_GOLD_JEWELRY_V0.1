@@ -5,6 +5,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Role } from '@prisma/client';
+import { RequestUser } from './auth.types';
+import { getJwtSecret } from './jwt.config';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -13,17 +16,20 @@ export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<{
       headers: { authorization?: string };
-      cookies?: Record<string, string>;
-      user?: { id: string; role: string };
+      user?: RequestUser;
     }>();
-    const bearer = req.headers.authorization?.replace('Bearer ', '');
-    const token = bearer || req.cookies?.accessToken;
+
+    const [scheme, token] = (req.headers.authorization ?? '').split(' ');
+
+    if (scheme !== 'Bearer') {
+      throw new UnauthorizedException('Missing bearer token');
+    }
+
     if (!token) throw new UnauthorizedException('Missing token');
-    const secret = process.env.JWT_SECRET ?? 'your_jwt_secret';
     try {
-      const payload = this.jwtService.verify<{ sub: string; role: string }>(
+      const payload = this.jwtService.verify<{ sub: string; role: Role }>(
         token,
-        { secret },
+        { secret: getJwtSecret() },
       );
       req.user = { id: payload.sub, role: payload.role };
       return true;

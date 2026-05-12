@@ -8,18 +8,23 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String        @unique
   phone        String?
   password     String
-  role         Role     @default(CUSTOMER)
+  role         Role          @default(CUSTOMER)
   avatar       String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   orders       Order[]
   addresses    Address[]
   chatSessions ChatSession[]
+  goldRates    GoldRate[]    @relation("GoldRateUpdatedBy")
+  deliveries   Delivery[]    @relation("DeliveryUpdatedBy")
+  auditLogs    AuditLog[]
+  chatMessages ChatMessage[]
 }
 
 enum Role {
@@ -29,64 +34,71 @@ enum Role {
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String
-  slug     String    @unique
-  image    String?
-  products Product[]
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  image     String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Product {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  description   String
-  purity        String
-  weightGrams   Float
-  makingCharge  Float
-  wastagePerc   Float
-  isActive      Boolean        @default(true)
-  isFeatured    Boolean        @default(false)
-  stock         Int            @default(0)
-  category      Category       @relation(fields:[categoryId], references:[id])
-  categoryId    String
-  images        ProductImage[]
-  orderItems    OrderItem[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id           String         @id @default(cuid())
+  name         String
+  slug         String         @unique
+  description  String
+  purity       String
+  weightGrams  Float
+  makingCharge Float
+  wastagePerc  Float
+  isActive     Boolean        @default(true)
+  isFeatured   Boolean        @default(false)
+  stock        Int            @default(0)
+  category     Category       @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  images       ProductImage[]
+  orderItems   OrderItem[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model ProductImage {
-  id         String   @id @default(cuid())
-  url        String
-  publicId   String
-  altText    String?
-  sortOrder  Int      @default(0)
-  isPrimary  Boolean  @default(false)
-  product    Product  @relation(fields:[productId], references:[id])
-  productId  String
+  id        String   @id @default(cuid())
+  url       String
+  publicId  String
+  altText   String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
 }
 
 model GoldRate {
-  id             String   @id @default(cuid())
-  ratePerGram    Float
-  purity         String
-  effectiveDate  DateTime @default(now())
-  updatedBy      String
-  source         String?
+  id            String   @id @default(cuid())
+  ratePerGram   Float
+  purity        String
+  effectiveDate DateTime @default(now())
+  updatedBy     User?    @relation("GoldRateUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  updatedById   String?
+  source        String?
+  createdAt     DateTime @default(now())
+
+  @@index([purity, effectiveDate])
 }
 
 model Order {
   id            String      @id @default(cuid())
   orderNumber   String      @unique
-  customer      User        @relation(fields:[customerId], references:[id])
+  customer      User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
   customerId    String
   items         OrderItem[]
   totalAmount   Float
   status        OrderStatus @default(PLACED)
   paymentStatus PayStatus   @default(PENDING)
   paymentId     String?
-  address       Address     @relation(fields:[addressId], references:[id])
+  address       Address     @relation(fields: [addressId], references: [id], onDelete: Restrict)
   addressId     String
   delivery      Delivery?
   notes         String?
@@ -113,10 +125,10 @@ enum PayStatus {
 }
 
 model OrderItem {
-  id           String   @id @default(cuid())
-  order        Order    @relation(fields:[orderId], references:[id])
+  id           String  @id @default(cuid())
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId      String
-  product      Product  @relation(fields:[productId], references:[id])
+  product      Product @relation(fields: [productId], references: [id], onDelete: Restrict)
   productId    String
   quantity     Int
   weightGrams  Float
@@ -128,32 +140,36 @@ model OrderItem {
 }
 
 model Address {
-  id         String  @id @default(cuid())
-  user       User    @relation(fields:[userId], references:[id])
-  userId     String
-  fullName   String
-  phone      String
-  line1      String
-  line2      String?
-  city       String
-  state      String
-  pincode    String
-  isDefault  Boolean @default(false)
-  orders     Order[]
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean  @default(false)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Delivery {
-  id             String         @id @default(cuid())
-  order          Order          @relation(fields:[orderId], references:[id])
-  orderId        String         @unique
-  courierName    String?
-  trackingId     String?
-  estimatedDate  DateTime?
-  deliveredAt    DateTime?
-  status         DeliveryStatus @default(PENDING)
-  updatedBy      String?
-  notes          String?
-  updatedAt      DateTime       @updatedAt
+  id            String         @id @default(cuid())
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId       String         @unique
+  courierName   String?
+  trackingId    String?
+  estimatedDate DateTime?
+  deliveredAt   DateTime?
+  status        DeliveryStatus @default(PENDING)
+  updatedBy     User?          @relation("DeliveryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedById   String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 enum DeliveryStatus {
@@ -169,28 +185,35 @@ enum DeliveryStatus {
 
 model ChatSession {
   id        String        @id @default(cuid())
-  user      User?         @relation(fields:[userId], references:[id])
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId    String?
   guestId   String?
   messages  ChatMessage[]
   createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model ChatMessage {
-  id        String      @id @default(cuid())
-  session   ChatSession @relation(fields:[sessionId], references:[id])
-  sessionId String
-  role      String
-  content   String
-  createdAt DateTime    @default(now())
+  id          String      @id @default(cuid())
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId   String
+  role        String
+  content     String
+  createdAt   DateTime    @default(now())
+  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
-  userId    String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
   action    String
   entity    String
   entityId  String
   details   Json?
   createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
 }

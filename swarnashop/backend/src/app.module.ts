@@ -13,11 +13,13 @@ import { AuditService } from './audit/audit.service';
 import { UploadService } from './upload/upload.service';
 import { NotificationsService } from './notifications/notifications.service';
 import { StoreModule } from './store/store.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     StoreModule,
+    PrismaModule,
     AuthModule,
     ProductsModule,
     CategoriesModule,
