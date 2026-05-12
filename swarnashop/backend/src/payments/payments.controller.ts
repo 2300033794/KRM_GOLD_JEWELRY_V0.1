@@ -1,32 +1,18 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { PaymentsService } from './payments.service';
+import { CreatePaymentOrderDto, VerifyPaymentDto } from './dto';
 
 @Controller('api/payments')
 export class PaymentsController {
+  constructor(private readonly paymentsService: PaymentsService) {}
+
   @Post('create-order')
-  createOrder(@Body() body: { amount: number; currency?: string }) {
-    return {
-      id: `order_${Date.now()}`,
-      amount: body.amount,
-      currency: body.currency ?? 'INR',
-      provider: 'razorpay',
-    };
+  createOrder(@Body() body: CreatePaymentOrderDto) {
+    return this.paymentsService.createOrder(body);
   }
 
   @Post('verify')
-  verify(
-    @Body()
-    body: {
-      razorpay_payment_id: string;
-      razorpay_order_id: string;
-      razorpay_signature: string;
-    },
-  ) {
-    return {
-      verified: Boolean(
-        body.razorpay_payment_id &&
-        body.razorpay_order_id &&
-        body.razorpay_signature,
-      ),
-    };
+  verify(@Body() body: VerifyPaymentDto) {
+    return this.paymentsService.verifySignature(body);
   }
 }

@@ -6,73 +6,61 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { IsArray, IsNumber, IsString } from 'class-validator';
-import { StoreService } from '../store/store.service';
-
-class CreateOrderDto {
-  @IsString() customerId!: string;
-  @IsString() addressId!: string;
-  @IsArray() items!: Array<{
-    productId: string;
-    quantity: number;
-    finalPrice: number;
-  }>;
-  @IsNumber() totalAmount!: number;
-}
+import { Role } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import type { RequestUser } from '../auth/auth.types';
+import { OrdersService } from './orders.service';
+import { CreateOrderDto, OrderListQueryDto, OrderStatusUpdateDto } from './dto';
 
 @Controller('api/orders')
 export class OrdersController {
-  constructor(private readonly store: StoreService) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  all() {
-    return this.store.orders;
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  all(@Query() query: OrderListQueryDto) {
+    return this.ordersService.list(query);
   }
 
   @Get('my')
-  my(@Req() req: { user?: { id?: string } }) {
-    return this.store.orders.filter((o) => o.customerId === req.user?.id);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CUSTOMER)
+  my(@Req() req: { user: RequestUser }) {
+    return this.ordersService.listByCustomer(req.user.id);
   }
 
   @Get(':id')
-  detail(@Param('id') id: string) {
-    return (
-      this.store.orders.find((o) => o.id === id) ?? { message: 'Not found' }
-    );
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.CUSTOMER)
+  detail(@Param('id') id: string, @Req() req: { user: RequestUser }) {
+    return this.ordersService.getById(id, req.user);
   }
 
   @Post()
-  create(@Body() dto: CreateOrderDto) {
-    const order = {
-      id: crypto.randomUUID(),
-      orderNumber: `KMR-${Date.now()}`,
-      customerId: dto.customerId,
-      items: dto.items.map((i) => ({ ...i, id: crypto.randomUUID() })),
-      totalAmount: dto.totalAmount,
-      status: 'PLACED',
-      paymentStatus: 'PENDING',
-      addressId: dto.addressId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.store.orders.push(order);
-    return order;
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CUSTOMER)
+  create(@Body() dto: CreateOrderDto, @Req() req: { user: RequestUser }) {
+    return this.ordersService.create(dto, req.user.id);
   }
 
   @Patch(':id/status')
-  setStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    const order = this.store.orders.find((o) => o.id === id);
-    if (!order) return { message: 'Not found' };
-    order.status = body.status;
-    order.updatedAt = new Date().toISOString();
-    return order;
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  setStatus(@Param('id') id: string, @Body() body: OrderStatusUpdateDto) {
+    return this.ordersService.updateStatus(id, body.status);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   remove(@Param('id') id: string) {
-    this.store.orders = this.store.orders.filter((o) => o.id !== id);
-    return { success: true };
+    return this.ordersService.cancel(id);
   }
 }
